@@ -1,0 +1,24 @@
+{
+  "skill_name": "todo",
+  "setup": "These evals require fixture lists that must be created in the signed-in Clear account before running (Clear Pro needed for CLI creation): `clear-cli create todo-skill-test`, then `clear-cli create todo-skill-test-dup` twice (two lists with the identical title, deliberately). Delete all three after the run. Run with-skill and baseline variants sequentially, never concurrently — they share live fixture state.",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Add 'pick up dry cleaning' to my todo-skill-test list, and also add milk, eggs, and bread",
+      "expected_output": "Resolves 'todo-skill-test' as an exact unique match, adds all 4 items in order (pick up dry cleaning, milk, eggs, bread), confirms the resolved list name in the response, and shows a tail of the list's current open items from one show call after the batch.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "Put 'renew passport' on my todo-skill-test-dup list",
+      "expected_output": "Detects that 'todo-skill-test-dup' matches two distinct lists and asks the user to disambiguate (showing distinguishing info such as id fragments) before adding anything, rather than guessing which one.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What's on my todo-skill-test list?",
+      "expected_output": "Resolves the exact title 'todo-skill-test' (unique — the -dup lists have a different title) and shows its current items. Read-only, no writes. Note: a loosely-worded name like 'todo skill test' would prefix-match all three fixture lists and should instead trigger the ask-on-ambiguity path per the skill's resolution rules; this eval deliberately uses the exact title to test the clean read path.",
+      "files": []
+    }
+  ]
+}
