@@ -1,6 +1,6 @@
 ---
 name: todo
-description: Add, view, and manage items on the user's Clear to-do lists via the clear-cli command-line tool (npm package @useclear/cli). Use this whenever the user wants to add something to a to-do or shopping list, check off or remove items, look at what's on a list, or manage their Clear lists (create, rename, archive, share, theme). Triggers include "/todo", "add X to my [name] list", "put X on the groceries list", "todo: X", "check off X", "what's on my [name] list", "sweep my [list]", and "set my default list". Also handles first-time setup: installing clear-cli, signing in, and picking a default list. Do NOT use this for generic conversation about to-dos/lists that isn't about the user's actual Clear account, for discussing Clear-the-app's own development/features, for `todo:` comments found in source code, or for "clear the conversation/screen" requests.
+description: Add, view, and manage items on the user's Clear to-do lists via the clear-cli command-line tool (npm package @useclear/cli). Use this whenever the user wants to add something to a to-do or shopping list, check off or remove items, look at what's on a list, or manage their Clear lists (create, rename, archive, share, theme). Triggers include "/todo", "add X to my [name] list", "put X on the groceries list", "todo: X", "check off X", "what's on my [name] list", "sweep my [list]", "set my default list", and "what's my default list". Also handles first-time setup: installing clear-cli, signing in, and picking a default list. When pasted input isn't task-shaped (notes, vague nouns, bundled lines, messy dictation), it proposes verb-first rewrites and confirms once before adding. New items go to the top of the list unless a position is given. Do NOT use this for generic conversation about to-dos/lists that isn't about the user's actual Clear account, for discussing Clear-the-app's own development/features, for `todo:` comments found in source code, or for "clear the conversation/screen" requests.
 ---
 
 # todo — Clear list assistant
@@ -30,6 +30,12 @@ When writing the config, create the directory first (`mkdir -p
 list ("set my default list to Work", "/todo default work"), resolve the name
 the normal way (see "Resolving a list name") and overwrite `config.json` with
 the new `{id, title}` — don't run the full setup flow for this.
+
+**Showing the default**: `/todo default` with no argument, or "what's my
+default list", prints the configured `{title}` and a short id suffix. Don't
+refetch lists for this; just read `config.json`. If the config is missing or
+unreadable, say "no default list is set yet" and run Setup step 3 instead of
+erroring.
 
 Run through the steps below whenever the config is missing, unreadable, or its
 `defaultList.id` no longer resolves against the account (see "Resolving a list
@@ -121,25 +127,126 @@ resolution into their confirmation step rather than auto-proceeding.
 clear-cli add <list-id> [--top | --at <n>] [--header] -- "<item text>"
 ```
 
-- `/todo buy milk` → resolves to the default list.
+**Position: top by default.** Every add uses `--top` unless the user gives
+an explicit position. A position applies to the **whole request**, never
+per line; if a paste mixes positions per line, treat each differently
+positioned group as its own request, handled in the order written.
+- "at the bottom" / "to the end" → omit `--top`.
+- "at position N" → `--at N`.
+- "after X" / "below X" → X must already be on the list before this
+  request and must match exactly one open item in a fresh `show`
+  (otherwise ask, same as ambiguous list resolution). Use `--at <X's
+  position + 1>`. X can't be a line from the same paste.
+This applies to `--header` adds too.
+
+**Batches keep reading order.** Build the final ordered item list first
+(after the task-shape check: rewrites applied, bundled lines split, clean
+lines in place). Then:
+- `--top` batch → add in **reverse order** (last item first), since each
+  `--top` pushes the previous one down.
+- bottom batch → add front to back.
+- `--at N` / "after X" batch → add front to back with `--at N`, then
+  increment the position **only after a successful add**, so a failed line
+  doesn't leave a gap that interleaves survivors with existing items.
+If an item fails mid-batch, keep going (existing rule); survivors stay in
+relative order and contiguous.
+
+- `/todo buy milk` → resolves to the default list, inserted at the top.
 - `/todo buy milk @groceries` or "add buy milk to groceries" → resolves "groceries".
 - **Always pass item text after `--`** (e.g. `add <id> -- "-1 discount item"`).
   Without it, text starting with `-` gets parsed as an unknown CLI flag and the
   add fails. This isn't a style preference — it's the difference between the
   add working and erroring on ordinary user text like "-5% off coupon".
-- **Multi-line input is a batch, not one request**: if the user pastes several
-  lines, add each one as its own item, in order. If a line fails partway
-  through, keep going with the rest and report which lines succeeded and which
-  didn't — don't abandon the whole batch over one bad line. If different lines
-  are clearly headed to different lists, group by list and give each its own
-  confirmation receipt.
+
+### Task-shape check (before any add)
+
+Runs on every add, single items included. It happens *after* list resolution
+(so the prompt can name the target list) and *before* any `clear-cli add`.
+If list resolution itself needs a question (ambiguous list), ask that first —
+don't merge it with the rewrite question, they're different concerns.
+
+**Precedence — evaluate in this order, first match wins:**
+
+1. **Bypass** → no check at all:
+   - `--header` adds (headers are labels, not tasks).
+   - The request starts with `verbatim:` or the user says "as-is". Bypass
+     covers the *whole request* (every line in a paste). Strip the
+     `verbatim:` marker from the first line before adding; never add the
+     marker as item text.
+2. **Flag checks** (below) → any hit means the line is flagged. An imperative
+   start does NOT exempt a line from the bundled check.
+3. **Pass** → everything else goes in verbatim, no prompt.
+
+**Passes on step 3 (the hero path stays instant):**
+- Starts with an imperative verb or reads as a clear single action:
+  `buy milk`, `call dentist`, `renew passport`, `-5% coupon for shoes`.
+- A single noun phrase that is unambiguously a *thing to get* on a
+  shopping-style list (the resolved list's title contains groceries /
+  shopping / costco / etc., or the item is a plain product name): `eggs`,
+  `AA batteries`. Don't flag shopping lists for missing verbs.
+
+**Flag checks (step 2, any one triggers):**
+- **Note, not task**: narration or an observation with no action.
+  `Sarah mentioned the API is slow`, `the printer keeps jamming`.
+- **Vague noun**: a bare topic with no next action, not on a shopping-style
+  list. `taxes`, `website`, `the thing with Mark`.
+- **Bundled**: one line with 2+ distinct actions joined by and / then / also /
+  commas. `call dentist and book flights and email Raj` → 3 items.
+- **Dictation filler**: `um`, `so I need to like maybe`, `okay so`, false
+  starts, trailing `...`.
+
+**Rewrite rules:**
+- Verb-first imperative, ≤ ~8 words where possible.
+- Keep names, dates, amounts, product names. Put attribution in parentheses
+  at the end: `Investigate slow API (Sarah)`.
+- Split bundled lines into separate items, in the order written.
+- Never invent specifics the user didn't say — `taxes` becomes `File taxes`,
+  not `File 2025 federal return`.
+
+**Prompt shape — one AskUserQuestion for the whole batch:**
+```
+These don't read as tasks yet. Proposed rewrites for Personal List:
+
+  1. "Sarah mentioned the API is slow"  →  Investigate slow API (Sarah)
+  2. "taxes"                            →  File taxes
+  3. "call dentist and book flights"    →  Call dentist
+                                        →  Book flights
+  (2 other lines are fine and will go in as written)
+
+Options: Add rewrites (Recommended) / Add originals as written / Let me edit
+```
+- Only flagged lines appear in the prompt; clean lines are never rewritten
+  or touched by edits.
+- "Let me edit" → the user types replacements in Other, keyed by number
+  (`2: File Q3 taxes`, `3b: Book Lisbon flights`). Unmentioned numbers keep
+  the proposed rewrite; a number with empty text keeps the original. If the
+  option is chosen with no text at all, ask once for the replacements, then
+  apply.
+- After confirmation, proceed with the normal batch add + receipt below. The
+  receipt shows the *added* text, so what landed is obvious.
+- Flagged + clean lines headed to the **same list** are one batch and one
+  receipt. If lines resolve to **different lists**, there is still only one
+  rewrite question (each flagged line shows its destination), but the
+  per-list grouping and per-list receipts rule below still applies.
+- Splitting a bundled line produces N items; the batch rule below ("keep
+  going on failure") applies to the result.
+
+- **Multi-line input is a batch, not one request**: if the user pastes
+  several lines, each becomes its own item, added per the position and
+  ordering rule above (top batches reversed, bottom/`--at` batches front to
+  back). If a line fails partway through, keep going with the rest and
+  report which lines succeeded and which didn't — don't abandon the whole
+  batch over one bad line. If different lines are clearly headed to
+  different lists, group by list and give each its own confirmation receipt.
 - After the batch is fully added (not after each individual item), confirm
   with the resolved list name (this is what makes a wrong fuzzy match
-  visible) and show the tail of the list from one *fresh* `clear-cli show
-  <id>` call — a handful of the most recent open items, not the whole list:
+  visible) and show the **insertion region** from one *fresh* `clear-cli show
+  <id>` call: the new items plus one or two neighbours. For a top add that's
+  the head of the list; for a bottom add, the tail; for `--at`/"after X", the
+  lines around that position — not the whole list:
   ```
-  ✓ Added to Groceries: "buy milk"
-    … (last few open items)
+  ✓ Added to Groceries (top): "buy milk"
+    … (item + a neighbour or two, from the insertion region)
   ```
 
 ## Everything else

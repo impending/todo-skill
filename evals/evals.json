@@ -5,7 +5,7 @@
     {
       "id": 0,
       "prompt": "Add 'pick up dry cleaning' to my todo-skill-test list, and also add milk, eggs, and bread",
-      "expected_output": "Resolves 'todo-skill-test' as an exact unique match, adds all 4 items in order (pick up dry cleaning, milk, eggs, bread), confirms the resolved list name in the response, and shows a tail of the list's current open items from one show call after the batch.",
+      "expected_output": "Resolves 'todo-skill-test' as an exact unique match, adds all 4 items to the top of the list in typed order (pick up dry cleaning, milk, eggs, bread now items 1-4, via reverse-order adds under the hood), confirms the resolved list name and '(top)' in the response, and shows the insertion region (the new items plus a neighbour or two) from one fresh show call after the batch — not the tail.",
       "files": []
     },
     {

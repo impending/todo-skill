@@ -8,8 +8,10 @@ anything destructive.
 ```
 > add milk, eggs, and bread to my groceries list
 
-✓ Added to Groceries: "milk", "eggs", "bread"
-  … milk, eggs, bread
+✓ Added to Groceries (top): "milk", "eggs", "bread"
+  1 · milk
+  2 · eggs
+  3 · bread
 ```
 
 *(illustrative — actual output depends on what's already on the list)*
@@ -50,21 +52,44 @@ straight to your request.
 ```
 /todo buy milk                  # → your default list
 /todo buy milk @groceries       # → the Groceries list
+/todo default                   # → shows your current default list
 ```
 
 Or just say it: "add eggs to my groceries list", "what's on my shopping
-list?", "check off milk", "set my default list to Work". Paste multiple
-lines to add them all as separate items — one confirmation for the whole
-batch, not one per line.
+list?", "check off milk", "set my default list to Work", "what's my default
+list?". Paste multiple lines to add them all as separate items — one
+confirmation for the whole batch, not one per line.
 
 Config lives at `~/.config/clear-skill/config.json` as
 `{ "defaultList": { "id", "title" }, "version": 1 }`. Change the default any
 time by asking — no need to redo first-run setup.
 
+**New items go to the top by default.** Say "at the bottom", "at position
+N", or "after X" to override. Within one position — everything typed with no
+override, or everything said to go "after X" — a pasted batch keeps your
+typed order. Mixed positions in one paste ("A at the bottom, B at the top")
+are treated as separate requests, so B can land above A. "After X" needs X to
+already be an open item on the list, uniquely matched, and not itself a line
+from the same paste — an ambiguous or missing anchor gets asked about rather
+than guessed.
+
+**Pasted text that doesn't read as a task gets a rewrite proposed first.**
+This runs on every add, including single items — but plain actions ("buy
+milk") and shopping-list nouns ("eggs") go straight through, no prompt.
+Notes ("Sarah mentioned the API is slow"), vague topics ("taxes"), bundled
+multi-task lines ("call dentist and book flights"), and dictation filler get
+a proposed verb-first rewrite instead, shown alongside the original, with one
+confirmation for the whole batch — add the rewrites, add as written, or edit.
+Prefix a request with `verbatim:` (or just say "as-is") to skip the check
+entirely; `--header` adds are always exempt.
+
 ## Safety & limitations
 
-- **Adds and reads never wait on you.** Anything that can't lose data —
-  adding, viewing, checking off — happens immediately.
+- **Adds and reads never wait on you** — with one exception: text that
+  doesn't read as a task-shaped item pauses once for a proposed rewrite (see
+  Usage & configuration above) before it's added. Plain actions and
+  shopping-list nouns still go straight through. Nothing here can lose
+  data; viewing and checking off always happen immediately.
 - **Anything that removes items or loses access always confirms first**:
   removing items (`rm`), archiving, sweeping completed items, and signing
   out. You'll see exactly what's about to happen before it happens.
@@ -89,6 +114,9 @@ time by asking — no need to redo first-run setup.
   add to an existing list instead.
 - **Something about themes or sharing looks wrong** — check "Known CLI
   quirks" in `SKILL.md` before assuming it's broken.
+- **Asked "which one did you mean?" after saying "after X"** — X didn't
+  uniquely match an existing open item (or matched none). The skill asks for
+  a valid anchor rather than guessing a position.
 
 ## Compatibility & privacy
 
