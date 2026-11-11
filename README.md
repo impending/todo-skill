@@ -1,6 +1,6 @@
-# todo — a Claude Code skill for Clear
+# todo — a Claude Code and Codex skill for Clear
 
-Manage your [Clear](https://useclear.com) to-do lists from Claude Code:
+Manage your [Clear](https://useclear.com) to-do lists from Claude Code or Codex:
 frictionless adds (single or batch), a persistent default list, fuzzy
 list-name matching that asks instead of guessing, and confirmation gates on
 anything destructive.
@@ -18,19 +18,28 @@ anything destructive.
 
 ## Prerequisites
 
-- [Claude Code](https://claude.com/claude-code)
+- [Claude Code](https://claude.com/claude-code) or [Codex](https://developers.openai.com/codex)
 - macOS or Linux (Windows is not supported)
 - Node.js + npm (for the Clear CLI)
 - A Clear account (Clear Pro required only for creating new lists)
 
 ## Install
 
-From the root of this repository:
+Claude Code:
 
 ```bash
-mkdir -p ~/.claude/skills/todo
-cp SKILL.md ~/.claude/skills/todo/SKILL.md
+mkdir -p ~/.claude/skills/todo && curl -fsSL https://raw.githubusercontent.com/impending/todo-skill/main/SKILL.md -o ~/.claude/skills/todo/SKILL.md
 ```
+
+Codex:
+
+```bash
+mkdir -p ~/.codex/skills/todo && curl -fsSL https://raw.githubusercontent.com/impending/todo-skill/main/SKILL.md -o ~/.codex/skills/todo/SKILL.md
+```
+
+Start a new session afterwards so the skill is picked up. In Codex, the
+first `clear-cli` command needs network access, so Codex may ask you to
+approve it.
 
 ## First run — what to expect
 
@@ -131,7 +140,7 @@ your default list's id and title, in the config file above.
 ## Uninstall
 
 ```bash
-rm -rf ~/.claude/skills/todo ~/.config/clear-skill
+rm -rf ~/.claude/skills/todo ~/.codex/skills/todo ~/.config/clear-skill
 ```
 
 Optionally also `clear-cli logout` (signs the CLI out) and

@@ -205,7 +205,7 @@ don't merge it with the rewrite question, they're different concerns.
 - Never invent specifics the user didn't say — `taxes` becomes `File taxes`,
   not `File 2025 federal return`.
 
-**Prompt shape — one AskUserQuestion for the whole batch:**
+**Prompt shape — one question for the whole batch** (AskUserQuestion where available, otherwise a plain question in chat):
 ```
 These don't read as tasks yet. Proposed rewrites for Personal List:
 
@@ -347,7 +347,7 @@ be passed on again). Handle all of them the same way:
    "Sweep **Groceries** (id …4F2A, 3 open · 12 done) — remove all 12
    completed items? Repeating items get re-added at the top." For `rm`, list
    every item text that will be removed, not just how many.
-3. Ask for one explicit confirmation (AskUserQuestion works well here). If the
+3. Ask for one explicit confirmation (AskUserQuestion where available, otherwise ask in chat). If the
    list itself was resolved ambiguously (matching steps 3–5 above), this is
    also where that gets confirmed — one question, not two — since the user is
    already reading a concrete restatement of the target.
