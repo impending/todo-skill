@@ -64,6 +64,9 @@ straight to your request.
 /todo default                   # → shows your current default list
 ```
 
+In Codex, start with `$todo` instead of `/todo` (for example `$todo buy milk`),
+or just say it in plain words.
+
 Or just say it: "add eggs to my groceries list", "what's on my shopping
 list?", "check off milk", "set my default list to Work", "what's my default
 list?". Paste multiple lines to add them all as separate items — one

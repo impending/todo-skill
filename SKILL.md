@@ -1,6 +1,17 @@
 ---
 name: todo
-description: Add, view, and manage items on the user's Clear to-do lists via the clear-cli command-line tool (npm package @useclear/cli). Use this whenever the user wants to add something to a to-do or shopping list, check off or remove items, look at what's on a list, or manage their Clear lists (create, rename, archive, share, send a read-only copy by link, theme). Triggers include "/todo", "add X to my [name] list", "put X on the groceries list", "todo: X", "check off X", "what's on my [name] list", "sweep my [list]", "send a copy of [list]", "copy link for [list]", "take down the copy link", "set my default list", and "what's my default list". Also handles first-time setup: installing clear-cli, signing in, and picking a default list. When pasted input isn't task-shaped (notes, vague nouns, bundled lines, messy dictation), it proposes verb-first rewrites and confirms once before adding. New items go to the top of the list unless a position is given. Do NOT use this for generic conversation about to-dos/lists that isn't about the user's actual Clear account, for discussing Clear-the-app's own development/features, for `todo:` comments found in source code, or for "clear the conversation/screen" requests.
+description: >-
+  Add, view, and manage items on the user's Clear to-do lists via the clear-cli
+  command-line tool (npm package @useclear/cli). Use whenever the user wants to
+  add to a to-do or shopping list, check off or remove items, see what's on a
+  list, or manage their Clear lists (create, rename, archive, share, send a
+  read-only copy by link, theme). Triggers include "/todo", "$todo", "add X to
+  my [name] list", "todo: X", "check off X", "what's on my [name] list", "sweep
+  my [list]", "send a copy of [list]", "take down the copy link", and "set my
+  default list". Also handles first-time setup (install, sign-in, default list).
+  Proposes verb-first rewrites for input that isn't task-shaped. Do NOT use for
+  general chat about to-dos, Clear-the-app's own development, `todo:` comments
+  in source code, or "clear the screen" requests.
 ---
 
 # todo — Clear list assistant
@@ -75,7 +86,7 @@ name" below):
    (`{"defaultList": {"id": …, "title": …}, "version": 1}`).
 
 4. Confirm with one line ("You're set — default list is **Groceries**. Try
-   `/todo buy milk`.") and move on to whatever the user actually asked for.
+   `/todo buy milk`." In Codex, say `$todo buy milk` instead.) and move on to whatever the user actually asked for.
 
 ## The list cache
 
