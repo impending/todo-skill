@@ -91,8 +91,8 @@ entirely; `--header` adds are always exempt.
   shopping-list nouns still go straight through. Nothing here can lose
   data; viewing and checking off always happen immediately.
 - **Anything that removes items or loses access always confirms first**:
-  removing items (`rm`), archiving, sweeping completed items, and signing
-  out. You'll see exactly what's about to happen before it happens.
+  removing items (`rm`), archiving, sweeping completed items, taking down a
+  copy link, and signing out. You'll see exactly what's about to happen before it happens.
 - **Never guesses between two lists with the same name.** If your wording
   could mean more than one list, it asks — showing each candidate's item
   counts and enough of its id to tell them apart.
@@ -102,6 +102,9 @@ entirely; `--header` adds are always exempt.
 - **Sharing a list** mints a fresh access link every time you ask, and the
   skill tells you that before running it — anyone holding the link can join
   the list.
+- **Sending a copy** (`send-copy`) gives a read-only link to a frozen copy
+  of a list. Anyone holding the link can read it. Short links can be updated
+  by sending again, or taken down; `--long` links can never be taken down.
 
 ## Troubleshooting
 

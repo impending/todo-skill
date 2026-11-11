@@ -1,6 +1,6 @@
 ---
 name: todo
-description: Add, view, and manage items on the user's Clear to-do lists via the clear-cli command-line tool (npm package @useclear/cli). Use this whenever the user wants to add something to a to-do or shopping list, check off or remove items, look at what's on a list, or manage their Clear lists (create, rename, archive, share, theme). Triggers include "/todo", "add X to my [name] list", "put X on the groceries list", "todo: X", "check off X", "what's on my [name] list", "sweep my [list]", "set my default list", and "what's my default list". Also handles first-time setup: installing clear-cli, signing in, and picking a default list. When pasted input isn't task-shaped (notes, vague nouns, bundled lines, messy dictation), it proposes verb-first rewrites and confirms once before adding. New items go to the top of the list unless a position is given. Do NOT use this for generic conversation about to-dos/lists that isn't about the user's actual Clear account, for discussing Clear-the-app's own development/features, for `todo:` comments found in source code, or for "clear the conversation/screen" requests.
+description: Add, view, and manage items on the user's Clear to-do lists via the clear-cli command-line tool (npm package @useclear/cli). Use this whenever the user wants to add something to a to-do or shopping list, check off or remove items, look at what's on a list, or manage their Clear lists (create, rename, archive, share, send a read-only copy by link, theme). Triggers include "/todo", "add X to my [name] list", "put X on the groceries list", "todo: X", "check off X", "what's on my [name] list", "sweep my [list]", "send a copy of [list]", "copy link for [list]", "take down the copy link", "set my default list", and "what's my default list". Also handles first-time setup: installing clear-cli, signing in, and picking a default list. When pasted input isn't task-shaped (notes, vague nouns, bundled lines, messy dictation), it proposes verb-first rewrites and confirms once before adding. New items go to the top of the list unless a position is given. Do NOT use this for generic conversation about to-dos/lists that isn't about the user's actual Clear account, for discussing Clear-the-app's own development/features, for `todo:` comments found in source code, or for "clear the conversation/screen" requests.
 ---
 
 # todo — Clear list assistant
@@ -28,8 +28,9 @@ When writing the config, create the directory first (`mkdir -p
 
 **Changing an existing default**: when the user asks to change their default
 list ("set my default list to Work", "/todo default work"), resolve the name
-the normal way (see "Resolving a list name") and overwrite `config.json` with
-the new `{id, title}` — don't run the full setup flow for this.
+the normal way (see "Resolving a list name") and overwrite `config.json` in
+the full shape above, with the new id and title under `defaultList` — don't
+run the full setup flow for this.
 
 **Showing the default**: `/todo default` with no argument, or "what's my
 default list", prints the configured `{title}` and a short id suffix. Don't
@@ -70,7 +71,8 @@ name" below):
      normal way (see "Resolving a list name"), rather than dumping the whole
      account on them.
    - Offer "create a new list" as an option too (needs Clear Pro — see below).
-   Write the result to `config.json` as `{id, title}`.
+   Write the result to `config.json` in the full shape shown above
+   (`{"defaultList": {"id": …, "title": …}, "version": 1}`).
 
 4. Confirm with one line ("You're set — default list is **Groceries**. Try
    `/todo buy milk`.") and move on to whatever the user actually asked for.
@@ -255,24 +257,73 @@ Options: Add rewrites (Recommended) / Add originals as written / Let me edit
 |---|---|
 | what's on a list | `clear-cli show <id>` |
 | overview of lists | `clear-cli lists` |
-| check off / uncheck | `clear-cli check <id> <items…>` / `clear-cli uncheck <id> <items…>` (items by number from `show`, or by text) |
-| edit item text | `clear-cli edit <id> <item> "<new text>"` |
+| check off / uncheck | `clear-cli check <id> <items…>` / `clear-cli uncheck <id> <items…>` |
+| *(item targets)* | For `check`, `uncheck`, `edit`, `move` and `rm`, pass item **ids** from a fresh `clear-cli --json show <id>`, not numbers. Numbers shift as soon as one item is checked, added or moved, so "item 2" from an earlier `show` can hit the wrong task |
+| edit item text | `clear-cli edit <id> <item> -- "<new text>"` (the `--` matters for text starting with `-`; same for `create -- "<title>"` and `rename <id> -- "<title>"`) |
 | reorder an item | `clear-cli move <id> <item> --to <n>` (1-based target position among open items) |
-| reorder a list | `clear-cli move-list <id>` |
+| reorder a list | `clear-cli move-list <id> --to <n>` (1-based position in My Lists) |
 | new list | `clear-cli create "<title>"` — needs Clear Pro; if it errors on that, say so plainly and suggest an existing list instead of retrying |
 | rename a list | `clear-cli rename <id> "<new title>"` |
 | bring back from archive | `clear-cli unarchive <id>` |
 | share a list | `clear-cli share <id>` — mints a **fresh** link each time that grants access to whoever holds it; mention that before running it |
+| send a copy | `clear-cli send-copy <id>` — prints a short `app.useclear.com/s/…` link to a read-only copy; re-sending the same list keeps the **same** link and refreshes its content (seen within ~30 s). Say before running it that anyone holding the link can read the list. `--long` makes a self-contained link that stores nothing on the server — see "Share vs send a copy" |
+| take a copy link down | `clear-cli unsend-copy <link>` — short `/s/` links only; confirm first (see Destructive operations) |
 | themes / fonts | `clear-cli themes`, `clear-cli fonts` to browse; `clear-cli theme <id> [themeId]`, `clear-cli font <id> [fontId]` to get/set |
 | account | `clear-cli whoami`; `clear-cli logout` |
 
+### Share vs send a copy
+
+"Share" can mean two different things. Pick by intent; if it's unclear, ask
+once:
+- **Invite** (`share`): one live list that both people edit; changes reach
+  everyone.
+- **Copy** (`send-copy`): a frozen, private copy for the other person. You
+  never see their ticks. A re-send updates what the **link page** shows, but
+  the copy already saved in their account stays as it was until they save a
+  fresh one.
+- Before `send-copy`: the copy cuts the title at 200 characters and each item
+  at 300, and still reports success. If any item is longer, say which ones
+  will be cut.
+- A short link can hold a bigger list than the other person can **save**
+  (saving has a tighter size limit). Before promising "they can save it", run
+  `clear-cli --dry-run send-copy --long <id>`; if that refuses, tell the user
+  the copy can be viewed but not saved.
+
+Long links (`send-copy --long`): the list travels inside the link itself, so
+it **can never be taken down or updated**; say that before making one. Each
+`--long` send is a brand-new link, and old ones keep their old content
+forever. For someone who will use Clear on the web, run
+`send-copy <id> --long --json` and give them the `webUrl` value: the plain
+`--long` link opens the app (or the store, on Android) instead of the web.
+Use `--long` only when a short link can't be made.
+
 ### Known CLI quirks
+
+- **Copy links — what the other person sees**:
+  - Tapping a copy link again **reopens the copy they already saved**, not a
+    fresh one. Archiving their copy doesn't change that; only deleting it
+    does. On Clear on the web, Delete exists only inside the Archive, so the
+    route is archive → open Archive → delete → open the link again → save.
+  - On the web, each person gets **5 fresh copies per link**. After that,
+    saving from that link fails for them; a new link (`unsend-copy`, then
+    `send-copy`) starts again at 5.
+  - The Android app can't save a copy from a link yet (Nov 2026). Android
+    users tap "Save to Clear on the web".
+  - Clear on the web signs in with **Apple only**. Someone without an Apple
+    ID cannot save a copy on the web.
+  - Copies carry only item text and ticked state. Section headers become
+    plain items, and repeat settings and due dates are dropped. To mark
+    groups, prefix item text (e.g. `Weekly: …`) instead of using `--header`.
 
 When a user reports something that sounds like a bug, check here before
 concluding the command actually failed:
 
-- **Share link thumbnail**: the social-preview thumbnail on a shared link is
-  always the app default, not the list's actual look — not fixable from here.
+- **Share link thumbnail**: the link-preview image is generated from the
+  list's look, and `share`/`send-copy` wait for it ("link preview ready"). If
+  a preview shows the plain app default instead, the image may still be
+  generating (the CLI then says so instead of "link preview ready"),
+  generation failed, or the messaging app cached an older image. Re-sending
+  a copy can take a few minutes to refresh it.
 - **Theme visibility**: theme changes may only be visible to the account that
   set them on a shared list — if a user says a theme "didn't show up" for
   someone else, that's likely why, not a broken `theme` command.
@@ -280,13 +331,18 @@ concluding the command actually failed:
 
 ## Destructive operations — always confirm
 
-`clear-cli rm`, `clear-cli archive`, `clear-cli sweep`, and `clear-cli logout`
-can lose data or access with no undo. Handle all of them the same way:
+`clear-cli rm`, `clear-cli archive`, `clear-cli sweep`, `clear-cli unsend-copy`
+and `clear-cli logout` can lose data or access with no undo (`unsend-copy`
+kills the link for everyone who has it; a re-send makes a new link that must
+be passed on again). Handle all of them the same way:
 
 1. Resolve the target fresh — this is the same refetch required by "The list
-   cache" above, so it's one `lists --json` call, not two. For `rm`, also
-   re-fetch `show <id>` so the item numbers you're about to act on are
-   current, not from an earlier turn in the conversation.
+   cache" above, so it's one `lists --json` call, not two. For `sweep`, also
+   note the ids of the completed items from `clear-cli --json show <id>`. For `rm`, also
+   re-fetch `clear-cli --json show <id>` and note each target item's **id**,
+   then pass those ids (not numbers) to `rm`. On a shared list someone else
+   can add or reorder items while the user is confirming, and a number could
+   then point at a different item.
 2. State exactly what will happen, concretely — not "clear the list" but
    "Sweep **Groceries** (id …4F2A, 3 open · 12 done) — remove all 12
    completed items? Repeating items get re-added at the top." For `rm`, list
@@ -295,9 +351,12 @@ can lose data or access with no undo. Handle all of them the same way:
    list itself was resolved ambiguously (matching steps 3–5 above), this is
    also where that gets confirmed — one question, not two — since the user is
    already reading a concrete restatement of the target.
-4. Only then run the command.
+4. Only then run the command. For `sweep` (it removes whatever is completed
+   *when it runs*), first re-fetch `clear-cli --json show <id>`; if the set of
+   completed-item ids differ from the ones noted in step 1, show the new set and ask
+   again instead of sweeping.
 
-`rm`, `archive`, `sweep`, and `logout` have no CLI-level confirmation of
+`rm`, `archive`, `sweep`, `unsend-copy` and `logout` have no CLI-level confirmation of
 their own — this skill's confirmation step is the only safety net, so don't
 skip it even though the command itself won't stop you. (`unarchive` is the
 reversal of `archive` and needs no confirmation.)
